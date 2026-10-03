@@ -2,65 +2,87 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Damir Sarsengaliyev</title>
-  <meta name="description" content="Damir Sarsengaliyev — data scientist working on statistics, ML, and LLMs.">
-  <link rel="stylesheet" href="style.css">
+  <meta name="description" content="Damir Sarsengaliyev — data scientist at Freedom Holding Corp., working on statistics, ML, and LLMs.">
+  <meta name="theme-color" content="#0b5f62">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=9">
 </head>
 <body>
-  <main>
-    <header>
-      <h1>Damir Sarsengaliyev</h1>
-      <p class="tagline">Data scientist working on statistics, machine learning, and LLMs.</p>
-      <nav>
-        <a href="https://github.com/Gunterwill">GitHub</a>
-        <a href="LINKEDIN_URL">LinkedIn</a>
-        <a href="mailto:sarsengalievdamir3@gmail.com">Email</a>
-        <a href="cv.pdf">CV</a>
-      </nav>
-    </header>
+  <canvas id="bg" aria-hidden="true"></canvas>
+  <svg class="decor decor-arcs" viewBox="0 0 400 400" aria-hidden="true">
+    <circle cx="400" cy="400" r="380"></circle>
+    <circle cx="400" cy="400" r="330"></circle>
+    <circle cx="400" cy="400" r="280"></circle>
+  </svg>
+  <div class="decor decor-hatch" aria-hidden="true"></div>
 
-    <section>
-      <h2>About</h2>
-      <p>I have a BSc in Computer Science from Nazarbayev University and studied Statistics and Data Science at MBZUAI. I've worked as a software engineer, data engineer, and research assistant on audio and multimodal ML. I like problems where careful statistics meets messy real-world data.</p>
-    </section>
-
-    <section>
-      <h2>Projects</h2>
-
-      <article>
-        <h3><a href="REPO_URL">Agentic Legal GraphRAG</a></h3>
-        <p>A tool-calling agent over 1,000+ Omani legal documents that answers multi-hop questions, like tracing amendment and repeal chains across laws. Combines dense + BM25 retrieval with rank fusion, cross-encoder reranking, and Neo4j graph traversal across Arabic and English.</p>
-        <p class="tags">Python · Neo4j · Groq · RAG</p>
-      </article>
-
-      <article>
-        <h3><a href="REPO_URL">Prediction Market Calibration</a></h3>
-        <p>How public attention affects calibration in prediction markets, using 679K Kalshi contracts and 72M trades. Clustered markets into five types, validated with Kruskal-Wallis and Dunn tests, and tested Granger causality against Google Trends.</p>
-        <p class="tags">DuckDB · scikit-learn · UMAP · FAISS</p>
-      </article>
-
-      <article>
-        <h3><a href="REPO_URL">Activation Steering in Small LLMs</a></h3>
-        <p>Found skill-specific directions in the residual stream of Qwen3-4B, with peak separability in middle layers, and compared several steering-vector strategies on math benchmarks.</p>
-        <p class="tags">PyTorch · Interpretability · MATH-500</p>
-      </article>
-
-      <article>
-        <h3><a href="REPO_URL">Multimodal Emotion Recognition</a></h3>
-        <p>Video, audio, and text model reaching 90%+ accuracy on IEMOCAP, deployed as a real-time web app.</p>
-        <p class="tags">PyTorch · ConvNeXt · RoBERTa</p>
-      </article>
-    </section>
-
-    <section>
-      <h2>Skills</h2>
-      <p>Python, SQL, Java, C++ · Pandas, NumPy, SciPy, scikit-learn, PyTorch · XGBoost, LightGBM, CatBoost · DuckDB · Statistical testing and experimental design</p>
-    </section>
-
-    <footer>
-      <p>© 2026 Damir Sarsengaliyev</p>
-    </footer>
+  <main id="stage" aria-label="Interactive graph. Use arrow keys to move between nodes.">
+    <div id="world">
+      <svg id="edges" width="1" height="1" aria-hidden="true">
+        <g id="edge-layer"></g>
+        <path id="ghost-path" pathLength="1"></path>
+        <path id="charge-path" pathLength="1"></path>
+      </svg>
+      <div id="ghost" aria-hidden="true">
+        <div class="ghost-ring"></div>
+        <div class="ghost-tag"><b></b><span></span></div>
+      </div>
+      <div id="traveler" aria-hidden="true"></div>
+      <div id="nodes"></div>
+    </div>
   </main>
+
+  <svg id="beam" aria-hidden="true">
+    <defs>
+      <linearGradient id="beam-grad" gradientUnits="userSpaceOnUse">
+        <stop offset="0" class="beam-stop-a"></stop>
+        <stop offset="1" class="beam-stop-b"></stop>
+      </linearGradient>
+    </defs>
+    <polygon id="beam-cone"></polygon>
+    <line id="beam-l1"></line>
+    <line id="beam-l2"></line>
+  </svg>
+
+  <section id="panel" aria-live="polite">
+    <div class="scan" aria-hidden="true"></div>
+    <div class="panel-scroll"></div>
+  </section>
+
+  <header class="topbar ui">
+    <a class="brand" href="#/">Damir Sarsengaliyev</a>
+    <nav class="crumbs" aria-label="Breadcrumb"></nav>
+  </header>
+
+  <nav class="quick ui" aria-label="Quick links">
+    <a href="https://github.com/Gunterwill" target="_blank" rel="noopener">GitHub</a>
+    <a href="https://www.linkedin.com/in/damir-sarsengaliyev-843816254/" target="_blank" rel="noopener">LinkedIn</a>
+    <a href="mailto:damir.sarsengaliyev.03@gmail.com">Email</a>
+    <a href="cv.pdf" target="_blank" rel="noopener">CV</a>
+  </nav>
+
+  <button class="edge-hint up ui" type="button"></button>
+  <button class="edge-hint left ui" type="button"></button>
+  <button class="edge-hint right ui" type="button"></button>
+
+  <div class="hint ui" aria-hidden="true">
+    <span class="hint-desktop">Hold and drag toward a node, or click it · arrow keys work too</span>
+    <span class="hint-touch">Swipe toward a node, or tap it</span>
+  </div>
+
+  <noscript>
+    <div class="noscript">
+      <h1>Damir Sarsengaliyev</h1>
+      <p>Data scientist working on statistics, machine learning, and LLMs.</p>
+      <p><a href="https://github.com/Gunterwill">GitHub</a> · <a href="mailto:damir.sarsengaliyev.03@gmail.com">Email</a> · <a href="cv.pdf">CV</a></p>
+    </div>
+  </noscript>
+
+  <script src="content.js?v=9"></script>
+  <script src="app.js?v=9"></script>
 </body>
 </html>
