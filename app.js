@@ -12,6 +12,65 @@
   const lowPower = matchMedia('(hover: none), (pointer: coarse), (max-width: 759px)').matches;
   document.documentElement.classList.toggle('low-power', lowPower);
 
+  // ---------- language ----------
+
+  const RU = window.GRAPH_RU || {};
+  const UI = {
+    en: {
+      explore: 'Explore',
+      soon: 'Coming soon',
+      soonNote: 'This branch of the graph is still growing. Check back later.',
+      release: 'Release to enter',
+      clickOrDrag: 'click or drag',
+      inside: (k) => `${k} nodes inside`,
+      tipDeeper: 'drag <kbd>↓</kbd> to go deeper',
+      tipSiblings: '<kbd>←</kbd> <kbd>→</kbd> for neighbours',
+      tipBack: '<kbd>↑</kbd> to go back',
+      hintDesktop: 'Hold and drag toward a node, or click it · arrow keys work too',
+      hintTouch: 'Swipe toward a node, or tap it',
+      goTo: 'Go to',
+      comingSoon: 'coming soon',
+      email: 'Email',
+      cv: 'CV',
+      switchTo: 'Переключить на русский',
+    },
+    ru: {
+      explore: 'Разделы',
+      soon: 'Скоро',
+      soonNote: 'Эта ветка графа ещё растёт. Загляните позже.',
+      release: 'Отпустите, чтобы перейти',
+      clickOrDrag: 'нажмите или потяните',
+      inside: (k) => `${k} ${k % 10 === 1 && k % 100 !== 11 ? 'узел' : [2, 3, 4].includes(k % 10) && ![12, 13, 14].includes(k % 100) ? 'узла' : 'узлов'} внутри`,
+      tipDeeper: 'потяните <kbd>↓</kbd>, чтобы углубиться',
+      tipSiblings: '<kbd>←</kbd> <kbd>→</kbd> — соседние',
+      tipBack: '<kbd>↑</kbd> — назад',
+      hintDesktop: 'Зажмите и потяните к узлу или нажмите на него · работают стрелки',
+      hintTouch: 'Проведите к узлу или нажмите на него',
+      goTo: 'Перейти:',
+      comingSoon: 'скоро',
+      email: 'Почта',
+      cv: 'Резюме',
+      switchTo: 'Switch to English',
+    },
+  };
+  let lang = (() => {
+    const q = new URLSearchParams(location.search).get('lang');
+    if (q === 'ru' || q === 'en') return q;
+    try { return localStorage.getItem('lang') === 'ru' ? 'ru' : 'en'; } catch (e) { return 'en'; }
+  })();
+  const ui = () => UI[lang];
+
+  // A node's text in the current language; Russian falls back to English.
+  function tx(n, field) {
+    const o = lang === 'ru' ? RU[n.path] : null;
+    if (o && o[field] !== undefined) {
+      if (field === 'links') return (n.links || []).map((l, i) => ({ ...l, label: o.links[i] ?? l.label }));
+      return o[field];
+    }
+    return n[field];
+  }
+  const L = (n) => tx(n, 'label');
+
   const ICONS = {
     start: '<path d="M12 3c.6 4.6 3.4 8.4 9 9-5.6.6-8.4 3.4-9 9-.6-5.6-3.4-8.4-9-9 5.6-.6 8.4-4.4 9-9z"/>',
     user: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.2 3.6-7 8-7s8 2.8 8 7"/>',
@@ -29,6 +88,12 @@
     clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
     branch: '<circle cx="6" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="7" r="2"/><path d="M6 7v10M18 9c0 4-6 4-11.2 8.6"/>',
     linkedin: '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 11v6M8 7.5v.01M12 17v-6M12 13.5a2.5 2.5 0 0 1 5 0V17"/>',
+    code: '<path d="m8 7-5 5 5 5M16 7l5 5-5 5"/>',
+    shield: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="m9 12 2 2 4-4"/>',
+    database: '<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>',
+    flask: '<path d="M9 3h6M10 3v6L4.5 18.5A1.7 1.7 0 0 0 6 21h12a1.7 1.7 0 0 0 1.5-2.5L14 9V3"/><path d="M7 15h10"/>',
+    mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',
+    home: '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/>',
     dot: '<circle cx="12" cy="12" r="3"/>',
   };
 
@@ -49,7 +114,7 @@
   // Children sit centred under their parent. Only the focus, its children,
   // its parent and its siblings are ever visible, so cousins may overlap.
   const LEVEL = 220;
-  const GAP = [0, 250, 185];
+  const GAP = [0, 215, 185];
   const RADIUS = [60, 44, 34];
   (function place(n) {
     n.dy = n.depth * LEVEL;
@@ -162,8 +227,7 @@
     btn.style.setProperty('--r', `${n.r}px`);
     btn.style.setProperty('--fs', (M_FOCUS_R / n.r).toFixed(3));
     btn.style.setProperty('--delay', `${(-Math.random() * 6).toFixed(2)}s`);
-    btn.setAttribute('aria-label', n.label + (n.soon ? ' (coming soon)' : ''));
-    btn.innerHTML = `<span class="orb"><svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[n.icon] || ICONS.dot}</svg></span><span class="label">${n.label}</span>`;
+    btn.innerHTML = `<span class="orb"><svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[n.icon] || ICONS.dot}</svg></span><span class="label"></span>`;
     btn.addEventListener('click', () => {
       if (suppressClick) return;
       go(n);
@@ -266,7 +330,7 @@
     const changed = n !== focus;
     if (n.parent) n.parent.lastChild = n;
     focus = n;
-    document.title = n === ROOT ? 'Damir Sarsengaliyev' : `${n.label} · Damir Sarsengaliyev`;
+    setTitle();
     if (push && changed) history.pushState(null, '', hashOf(n));
     if (instant) {
       cam.x = n.x;
@@ -317,7 +381,7 @@
     const chain = [];
     for (let a = focus; a; a = a.parent) chain.unshift(a);
     crumbs.innerHTML = chain
-      .map((n, i) => `${i ? '<span aria-hidden="true">/</span>' : ''}<button type="button" data-path="${n.path}"${n === focus ? ' aria-current="page"' : ''}>${n.label}</button>`)
+      .map((n, i) => `${i ? '<span aria-hidden="true">/</span>' : ''}<button type="button" data-path="${n.path}"${n === focus ? ' aria-current="page"' : ''}>${L(n)}</button>`)
       .join('');
   }
 
@@ -325,23 +389,32 @@
     let i = 0;
     const st = () => `style="--i:${i++}"`;
     const out = [];
-    out.push(`<div class="p-kicker" ${st()}>${n.kicker || (n.parent ? n.parent.label : '')}</div>`);
-    out.push(`<h2 class="p-title" ${st()}>${n.title || n.label}</h2>`);
-    if (n.subtitle) out.push(`<p class="p-sub" ${st()}>${n.subtitle}</p>`);
+    const t = ui();
+    out.push(`<div class="p-kicker" ${st()}>${tx(n, 'kicker') || (n.parent ? L(n.parent) : '')}</div>`);
+    out.push(`<h2 class="p-title" ${st()}>${tx(n, 'title') || L(n)}</h2>`);
+    const sub = tx(n, 'subtitle');
+    if (sub) out.push(`<p class="p-sub" ${st()}>${sub}</p>`);
     if (n.soon) {
-      out.push(`<div class="soon" ${st()}><span class="soon-text">Coming soon</span><p>${n.soonNote || 'This branch of the graph is still growing. Check back later.'}</p></div>`);
+      out.push(`<div class="soon" ${st()}><span class="soon-text">${t.soon}</span><p>${tx(n, 'soonNote') || t.soonNote}</p></div>`);
     }
-    (n.body || []).forEach((p) => out.push(`<p class="p-body" ${st()}>${p}</p>`));
-    if (n.list) {
-      out.push(`<ul class="p-list" ${st()}>${n.list.map((it) => `<li><b>${it.title}</b>${it.meta ? `<span>${it.meta}</span>` : ''}${it.text ? `<p>${it.text}</p>` : ''}</li>`).join('')}</ul>`);
+    const bullets = tx(n, 'bullets');
+    if (bullets) {
+      out.push(`<ul class="p-bullets" ${st()}>${bullets.map((b) => `<li>${b}</li>`).join('')}</ul>`);
     }
-    if (n.groups) {
-      out.push(`<div class="p-groups" ${st()}>${n.groups.map((g) => `<div><h4>${g.name}</h4><div class="chips">${g.items.map((x) => `<span class="chip">${x}</span>`).join('')}</div></div>`).join('')}</div>`);
+    (tx(n, 'body') || []).forEach((p) => out.push(`<p class="p-body" ${st()}>${p}</p>`));
+    const list = tx(n, 'list');
+    if (list) {
+      out.push(`<ul class="p-list" ${st()}>${list.map((it) => `<li><b>${it.title}</b>${it.meta ? `<span>${it.meta}</span>` : ''}${it.text ? `<p>${it.text}</p>` : ''}</li>`).join('')}</ul>`);
     }
-    if (n.tags) {
-      out.push(`<div class="p-tags chips" ${st()}>${n.tags.map((t) => `<span class="chip">${t}</span>`).join('')}</div>`);
+    const groups = tx(n, 'groups');
+    if (groups) {
+      out.push(`<div class="p-groups" ${st()}>${groups.map((g) => `<div><h4>${g.name}</h4><div class="chips">${g.items.map((x) => `<span class="chip">${x}</span>`).join('')}</div></div>`).join('')}</div>`);
     }
-    const links = (n.links || []).filter((l) => l.href);
+    const tags = tx(n, 'tags');
+    if (tags) {
+      out.push(`<div class="p-tags chips" ${st()}>${tags.map((x) => `<span class="chip">${x}</span>`).join('')}</div>`);
+    }
+    const links = (tx(n, 'links') || []).filter((l) => l.href);
     if (links.length) {
       out.push(`<div class="p-links" ${st()}>${links.map((l, j) => {
         const ext = !l.href.startsWith('mailto:');
@@ -350,12 +423,12 @@
       }).join('')}</div>`);
     }
     if (n.children.length) {
-      out.push(`<div class="p-explore" ${st()}><span class="lbl">Explore</span><div class="chips">${n.children.map((c) => `<button type="button" class="chip go" data-path="${c.path}">${c.label}</button>`).join('')}</div></div>`);
+      out.push(`<div class="p-explore" ${st()}><span class="lbl">${t.explore}</span><div class="chips">${n.children.map((c) => `<button type="button" class="chip go" data-path="${c.path}">${L(c)}</button>`).join('')}</div></div>`);
     }
     const tips = [];
-    if (n.children.length) tips.push('drag <kbd>↓</kbd> to go deeper');
-    if (sibling(n, -1) || sibling(n, 1)) tips.push('<kbd>←</kbd> <kbd>→</kbd> for neighbours');
-    if (n.parent) tips.push('<kbd>↑</kbd> to go back');
+    if (n.children.length) tips.push(t.tipDeeper);
+    if (sibling(n, -1) || sibling(n, 1)) tips.push(t.tipSiblings);
+    if (n.parent) tips.push(t.tipBack);
     if (tips.length) out.push(`<p class="p-hint" ${st()}>${tips.join(' · ')}</p>`);
     return out.join('');
   }
@@ -595,10 +668,11 @@
     ghost.classList.add('on');
     const ready = p >= COMMIT;
     ghost.classList.toggle('ready', ready);
-    ghostTitle.textContent = t.label;
-    const teaser = t.soon ? 'Coming soon' : t.teaser || (t.children.length ? `${t.children.length} nodes inside` : t.kicker || '');
-    if (mode === 'hover') ghostSub.textContent = `${teaser} · click or drag`;
-    else ghostSub.textContent = ready ? 'Release to enter' : teaser;
+    const u = ui();
+    ghostTitle.textContent = L(t);
+    const teaser = t.soon ? u.soon : tx(t, 'teaser') || (t.children.length ? u.inside(t.children.length) : tx(t, 'kicker') || '');
+    if (mode === 'hover') ghostSub.textContent = `${teaser} · ${u.clickOrDrag}`;
+    else ghostSub.textContent = ready ? u.release : teaser;
   }
 
   function updateBeam() {
@@ -651,8 +725,8 @@
           el._node = n;
           el._mode = 'tab';
           const arrow = dir === 'up' ? '↑' : dir === 'left' ? '‹' : '›';
-          el.innerHTML = `<span class="tab-arrow" aria-hidden="true">${arrow}</span><span class="tab-label">${n.label}</span>`;
-          el.setAttribute('aria-label', `Go to ${n.label}`);
+          el.innerHTML = `<span class="tab-arrow" aria-hidden="true">${arrow}</span><span class="tab-label">${L(n)}</span>`;
+          el.setAttribute('aria-label', `${ui().goTo} ${L(n)}`);
         }
         el.classList.add('show');
         el.style.left = el.style.top = '';
@@ -668,7 +742,7 @@
       if (!off) { el.classList.remove('show'); continue; }
       if (el._node !== n) {
         el._node = n;
-        el.textContent = dir === 'up' ? `↑ ${n.label}` : dir === 'left' ? `← ${n.label}` : `${n.label} →`;
+        el.textContent = dir === 'up' ? `↑ ${L(n)}` : dir === 'left' ? `← ${L(n)}` : `${L(n)} →`;
       }
       el.classList.add('show');
       const x = dir === 'left' ? 90 : dir === 'right' ? W - 90 : clamp(s.x, 120, W - 120);
@@ -980,6 +1054,41 @@
     return state;
   })() : null;
 
+  // ---------- language switching ----------
+
+  const langBtn = $('.lang-toggle');
+  function setTitle() {
+    document.title = focus === ROOT ? 'Damir Sarsengaliyev' : `${L(focus)} · Damir Sarsengaliyev`;
+  }
+  function applyLang() {
+    const u = ui();
+    document.documentElement.lang = lang;
+    all.forEach((n) => {
+      n.el.querySelector('.label').textContent = L(n);
+      n.el.setAttribute('aria-label', L(n) + (n.soon ? ` (${u.comingSoon})` : ''));
+    });
+    $('.hint-desktop').textContent = u.hintDesktop;
+    $('.hint-touch').textContent = u.hintTouch;
+    $('.quick [data-ui="email"]').textContent = u.email;
+    $('.quick [data-ui="cv"]').textContent = u.cv;
+    langBtn.classList.toggle('is-ru', lang === 'ru');
+    langBtn.setAttribute('aria-label', u.switchTo);
+    // force the edge hints and tabs to rewrite their text
+    Object.values(edgeHints).forEach((el) => { el._node = null; });
+    sceneDirty = true;
+    renderCrumbs();
+    setTitle();
+    if (panelOpen) {
+      panelScroll.innerHTML = render(focus);
+      positionPanel();
+    }
+  }
+  langBtn.addEventListener('click', () => {
+    lang = lang === 'ru' ? 'en' : 'ru';
+    try { localStorage.setItem('lang', lang); } catch (e) { /* private mode */ }
+    applyLang();
+  });
+
   // ---------- boot ----------
 
   addEventListener('resize', resize);
@@ -987,6 +1096,7 @@
   // No fade-in/out on the very first paint: hidden nodes start hidden.
   document.documentElement.classList.add('booting');
   requestAnimationFrame(() => requestAnimationFrame(() => document.documentElement.classList.remove('booting')));
+  applyLang();
   const start = fromHash();
   go(start, { push: false, instant: true });
   history.replaceState(null, '', hashOf(start));
