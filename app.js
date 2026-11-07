@@ -17,40 +17,52 @@
   const RU = window.GRAPH_RU || {};
   const UI = {
     en: {
-      explore: 'Explore',
-      soon: 'Coming soon',
-      soonNote: 'This branch of the graph is still growing. Check back later.',
-      release: 'Release to enter',
-      clickOrDrag: 'click or drag',
-      inside: (k) => `${k} nodes inside`,
-      tipDeeper: 'drag <kbd>↓</kbd> to go deeper',
-      tipSiblings: '<kbd>←</kbd> <kbd>→</kbd> for neighbours',
-      tipBack: '<kbd>↑</kbd> to go back',
-      hintDesktop: 'Hold and drag toward a node, or click it · arrow keys work too',
-      hintTouch: 'Swipe toward a node, or tap it',
+      soon: 'Not published yet',
+      soonNote: 'This part of the graph is still being written.',
+      release: 'Release to open',
+      inside: (k) => `${k} ${k === 1 ? 'node' : 'nodes'} inside`,
+      keys: 'Keyboard',
+      keyDeeper: 'deeper',
+      keySiblings: 'neighbours',
+      keyBack: 'back',
+      radialDeeper: 'Drag outward to go deeper.',
+      radialSiblings: 'Drag around the ring for neighbours.',
+      radialBack: 'Drag toward the centre to go back.',
+      hintDesktop: 'Drag toward a node to travel there, or click it. Arrow keys work too.',
+      hintTouch: 'Swipe toward a node, or tap it.',
       goTo: 'Go to',
-      comingSoon: 'coming soon',
+      comingSoon: 'not published yet',
       email: 'Email',
       cv: 'CV',
+      skip: 'Skip to details',
+      graph: 'Graph of sections',
+      inGraph: (name) => `Inside ${name}`,
       switchTo: 'Переключить на русский',
+      description: 'Damir Sarsengaliyev, data scientist at Freedom Holding Corp., working on statistics, machine learning, and LLMs.',
     },
     ru: {
-      explore: 'Разделы',
-      soon: 'Скоро',
-      soonNote: 'Эта ветка графа ещё растёт. Загляните позже.',
-      release: 'Отпустите, чтобы перейти',
-      clickOrDrag: 'нажмите или потяните',
+      soon: 'Ещё не опубликовано',
+      soonNote: 'Эта часть графа ещё пишется.',
+      release: 'Отпустите, чтобы открыть',
       inside: (k) => `${k} ${k % 10 === 1 && k % 100 !== 11 ? 'узел' : [2, 3, 4].includes(k % 10) && ![12, 13, 14].includes(k % 100) ? 'узла' : 'узлов'} внутри`,
-      tipDeeper: 'потяните <kbd>↓</kbd>, чтобы углубиться',
-      tipSiblings: '<kbd>←</kbd> <kbd>→</kbd> — соседние',
-      tipBack: '<kbd>↑</kbd> — назад',
-      hintDesktop: 'Зажмите и потяните к узлу или нажмите на него · работают стрелки',
-      hintTouch: 'Проведите к узлу или нажмите на него',
+      keys: 'Клавиши',
+      keyDeeper: 'глубже',
+      keySiblings: 'соседние',
+      keyBack: 'назад',
+      radialDeeper: 'Потяните наружу, чтобы углубиться.',
+      radialSiblings: 'По кругу — соседние узлы.',
+      radialBack: 'К центру — назад.',
+      hintDesktop: 'Потяните к узлу, чтобы перейти, или нажмите на него. Стрелки тоже работают.',
+      hintTouch: 'Проведите к узлу или нажмите на него.',
       goTo: 'Перейти:',
-      comingSoon: 'скоро',
+      comingSoon: 'ещё не опубликовано',
       email: 'Почта',
       cv: 'Резюме',
+      skip: 'Перейти к описанию',
+      graph: 'Граф разделов',
+      inGraph: (name) => `Внутри: ${name}`,
       switchTo: 'Switch to English',
+      description: 'Дамир Сарсенгалиев — data scientist в Freedom Holding Corp.: статистика, машинное обучение и LLM.',
     },
   };
   let lang = (() => {
@@ -70,6 +82,14 @@
     return n[field];
   }
   const L = (n) => tx(n, 'label');
+
+  // Chevrons for the edge hints and phone tabs, drawn in the same stroke as the node icons.
+  const CHEVRON = {
+    up: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>',
+    left: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>',
+    right: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>',
+    down: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>',
+  };
 
   const ICONS = {
     start: '<path d="M12 3c.6 4.6 3.4 8.4 9 9-5.6.6-8.4 3.4-9 9-.6-5.6-3.4-8.4-9-9 5.6-.6 8.4-4.4 9-9z"/>',
@@ -125,6 +145,27 @@
       place(c);
     });
   })(Object.assign(ROOT, { dx: 0 }));
+
+  // Experimental radial layout (desktop, open the site with ?layout=radial):
+  // Start in the centre and the top-level branches evenly spaced on a ring.
+  // Deeper children fan out around their parent's direction at a fixed
+  // spacing; only two levels are ever visible, so cousins may overlap.
+  const RADIAL = new URLSearchParams(location.search).get('layout') === 'radial';
+  document.documentElement.classList.toggle('radial', RADIAL);
+  const RING = 270;
+  const FAN_ARC = 200; // distance between neighbouring children along their ring
+  (function placeRadial(n) {
+    const k = n.children.length;
+    n.children.forEach((c, i) => {
+      const r = RING * c.depth;
+      c.ang = n === ROOT
+        ? -Math.PI / 2 + (i * Math.PI * 2) / k
+        : n.ang + (i - (k - 1) / 2) * (FAN_ARC / r);
+      c.rx = Math.cos(c.ang) * r;
+      c.ry = Math.sin(c.ang) * r;
+      placeRadial(c);
+    });
+  })(Object.assign(ROOT, { rx: 0, ry: 0, ang: 0 }));
 
   // Phones only ever show the focus and its children, so children are laid
   // out in balanced rows of up to three under their parent to stay readable.
@@ -226,7 +267,6 @@
     btn.className = `node d${Math.min(n.depth, 2)}${n.soon ? ' is-soon' : ''}`;
     btn.style.setProperty('--r', `${n.r}px`);
     btn.style.setProperty('--fs', (M_FOCUS_R / n.r).toFixed(3));
-    btn.style.setProperty('--delay', `${(-Math.random() * 6).toFixed(2)}s`);
     btn.innerHTML = `<span class="orb"><svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[n.icon] || ICONS.dot}</svg></span><span class="label"></span>`;
     btn.addEventListener('click', () => {
       if (suppressClick) return;
@@ -245,6 +285,16 @@
     }
   });
 
+  if (RADIAL) {
+    const depth = Math.max(...all.map((n) => n.depth));
+    for (let d = depth; d >= 1; d--) {
+      const ring = document.createElementNS(SVG_NS, 'circle');
+      ring.setAttribute('class', 'orbit');
+      ring.setAttribute('r', RING * d);
+      edgeLayer.prepend(ring);
+    }
+  }
+
   // ---------- viewport + camera ----------
 
   let W = 0, H = 0, mobile = false;
@@ -253,9 +303,40 @@
 
   // Where the focused node sits on screen. Nodes with children keep the panel
   // to their right; leaves (and phones) project it downward instead.
-  function panelBelow() { return mobile || !focus.children.length; }
+  function panelBelow() { return mobile || (!RADIAL && !focus.children.length); }
+
+  // Radial view: the panel goes on the side away from where the focused
+  // branch fans out, and the focus plus its children are framed in the rest.
+  const PANEL_GAP = 32;
+  function radialView() {
+    const outward = Math.cos(Math.atan2(focus.y, focus.x));
+    const side = focus !== ROOT && outward > 0.15 ? 'left' : 'right';
+    const pw = clamp(W * 0.3, 340, 440);
+    const regionL = side === 'right' ? 16 : PANEL_GAP + pw + 24;
+    const regionR = side === 'right' ? W - PANEL_GAP - pw - 24 : W - 16;
+    const top = 70, bottom = H - 24;
+    let minX = -focus.r - 70, maxX = focus.r + 70, minY = -focus.r - 24, maxY = focus.r + 56;
+    for (const c of focus.children) {
+      const dx = c.x - focus.x, dy = c.y - focus.y;
+      minX = Math.min(minX, dx - c.r - 64);
+      maxX = Math.max(maxX, dx + c.r + 64);
+      minY = Math.min(minY, dy - c.r - 24);
+      maxY = Math.max(maxY, dy + c.r + 56);
+    }
+    const base = W < 1100 ? 1 : 1.18;
+    const sc = clamp(Math.min(base, (regionR - regionL) / (maxX - minX), (bottom - top) / (maxY - minY)), 0.45, base);
+    return {
+      x: regionL + ((regionR - regionL) - (maxX - minX) * sc) / 2 - minX * sc,
+      y: top + ((bottom - top) - (maxY - minY) * sc) / 2 - minY * sc,
+      s: sc,
+      side,
+      pw,
+    };
+  }
+
   function anchor() {
     if (mobile) return { x: W / 2, y: Math.max(160, H * 0.22) };
+    if (RADIAL) { const v = radialView(); return { x: v.x, y: v.y }; }
     return focus.children.length ? { x: W * 0.37, y: H * 0.42 } : { x: W / 2, y: H * 0.28 };
   }
   const anc = { x: 0, y: 0 };
@@ -272,6 +353,7 @@
   // Zoom out just enough for the focused node's children to fit on screen.
   function zoom() {
     if (mobile) return clamp(Math.min(W / 360, H / 740), 0.8, 1.1);
+    if (RADIAL) return radialView().s;
     const base = W < 1100 ? 1 : 1.18;
     if (!focus.children.length) return base;
     const a = anchor();
@@ -290,8 +372,8 @@
 
   function applyLayout() {
     all.forEach((n) => {
-      n.x = mobile ? n.mx : n.dx;
-      n.y = mobile ? n.my : n.dy;
+      n.x = mobile ? n.mx : RADIAL ? n.rx : n.dx;
+      n.y = mobile ? n.my : RADIAL ? n.ry : n.dy;
       n.el.style.left = `${n.x}px`;
       n.el.style.top = `${n.y}px`;
     });
@@ -315,7 +397,10 @@
     Object.assign(anc, anchor());
     sceneDirty = true;
     bg.resize();
-    if (panelOpen) positionPanel();
+    if (panelOpen) {
+      positionPanel();
+      updateScrollFade();
+    }
   }
 
   // ---------- focus + panel ----------
@@ -359,6 +444,9 @@
       let o = 0;
       if (n === focus || n.parent === focus) o = 1;
       else if (mobile) o = 0;
+      // on a leaf page the parent would sit half off the top edge, under the
+      // breadcrumb; the edge hint stands in for it instead
+      else if (n === focus.parent && !RADIAL && !focus.children.length) o = 0;
       else if (n === focus.parent) o = 0.75;
       else if (focus.parent && n.parent === focus.parent) o = 0.6;
       opacity.set(n, o);
@@ -390,12 +478,15 @@
     const st = () => `style="--i:${i++}"`;
     const out = [];
     const t = ui();
-    out.push(`<div class="p-kicker" ${st()}>${tx(n, 'kicker') || (n.parent ? L(n.parent) : '')}</div>`);
-    out.push(`<h2 class="p-title" ${st()}>${tx(n, 'title') || L(n)}</h2>`);
+    const title = tx(n, 'title') || L(n);
+    out.push(`<h1 class="p-title${n === ROOT ? ' is-name' : ''}" ${st()}>${title}</h1>`);
     const sub = tx(n, 'subtitle');
-    if (sub) out.push(`<p class="p-sub" ${st()}>${sub}</p>`);
+    const period = tx(n, 'period');
+    if (sub || period) {
+      out.push(`<div class="p-meta" ${st()}>${sub ? `<p class="p-sub">${sub}</p>` : ''}${period ? `<p class="p-period">${period}</p>` : ''}</div>`);
+    }
     if (n.soon) {
-      out.push(`<div class="soon" ${st()}><span class="soon-text">${t.soon}</span><p>${tx(n, 'soonNote') || t.soonNote}</p></div>`);
+      out.push(`<div class="soon" ${st()}><p class="soon-title">${t.soon}</p><p>${tx(n, 'soonNote') || t.soonNote}</p></div>`);
     }
     const bullets = tx(n, 'bullets');
     if (bullets) {
@@ -404,32 +495,40 @@
     (tx(n, 'body') || []).forEach((p) => out.push(`<p class="p-body" ${st()}>${p}</p>`));
     const list = tx(n, 'list');
     if (list) {
-      out.push(`<ul class="p-list" ${st()}>${list.map((it) => `<li><b>${it.title}</b>${it.meta ? `<span>${it.meta}</span>` : ''}${it.text ? `<p>${it.text}</p>` : ''}</li>`).join('')}</ul>`);
+      out.push(`<ul class="p-list" ${st()}>${list.map((it) => `<li><div class="p-list-main"><p class="p-list-title">${it.title}</p>${it.meta ? `<p class="p-list-meta">${it.meta}</p>` : ''}${it.text ? `<p class="p-list-text">${it.text}</p>` : ''}</div>${it.period ? `<p class="p-list-period">${it.period}</p>` : ''}</li>`).join('')}</ul>`);
     }
     const groups = tx(n, 'groups');
     if (groups) {
-      out.push(`<div class="p-groups" ${st()}>${groups.map((g) => `<div><h4>${g.name}</h4><div class="chips">${g.items.map((x) => `<span class="chip">${x}</span>`).join('')}</div></div>`).join('')}</div>`);
+      out.push(`<div class="p-groups" ${st()}>${groups.map((g) => `<section><h2>${g.name}</h2><ul class="chips">${g.items.map((x) => `<li class="chip">${x}</li>`).join('')}</ul></section>`).join('')}</div>`);
     }
     const tags = tx(n, 'tags');
     if (tags) {
-      out.push(`<div class="p-tags chips" ${st()}>${tags.map((x) => `<span class="chip">${x}</span>`).join('')}</div>`);
+      out.push(`<ul class="p-tags chips" ${st()}>${tags.map((x) => `<li class="chip" translate="no">${x}</li>`).join('')}</ul>`);
     }
     const links = (tx(n, 'links') || []).filter((l) => l.href);
     if (links.length) {
       out.push(`<div class="p-links" ${st()}>${links.map((l, j) => {
-        const ext = !l.href.startsWith('mailto:');
+        const ext = /^https?:/.test(l.href);
         const attrs = l.download ? ' download' : ext ? ' target="_blank" rel="noopener"' : '';
-        return `<a class="btn${j === 0 ? ' primary' : ''}" href="${l.href}"${attrs}>${l.label}${ext && !l.download ? ' ↗' : ''}</a>`;
+        return `<a class="btn${j === 0 ? ' primary' : ''}" href="${l.href}"${attrs}>${l.label}</a>`;
       }).join('')}</div>`);
     }
     if (n.children.length) {
-      out.push(`<div class="p-explore" ${st()}><span class="lbl">${t.explore}</span><div class="chips">${n.children.map((c) => `<button type="button" class="chip go" data-path="${c.path}">${L(c)}</button>`).join('')}</div></div>`);
+      out.push(`<nav class="p-explore" aria-label="${t.inGraph(L(n))}" ${st()}><ul class="chips">${n.children.map((c) => `<li><button type="button" class="chip go" data-path="${c.path}">${L(c)}</button></li>`).join('')}</ul></nav>`);
     }
-    const tips = [];
-    if (n.children.length) tips.push(t.tipDeeper);
-    if (sibling(n, -1) || sibling(n, 1)) tips.push(t.tipSiblings);
-    if (n.parent) tips.push(t.tipBack);
-    if (tips.length) out.push(`<p class="p-hint" ${st()}>${tips.join(' · ')}</p>`);
+    if (RADIAL && !mobile) {
+      const tips = [];
+      if (n.children.length) tips.push(t.radialDeeper);
+      if (sibling(n, -1) || sibling(n, 1)) tips.push(t.radialSiblings);
+      if (n.parent) tips.push(t.radialBack);
+      if (tips.length) out.push(`<p class="p-hint" ${st()}>${tips.join(' ')}</p>`);
+    } else {
+      const keys = [];
+      if (n.children.length) keys.push(`<span><kbd>↓</kbd> ${t.keyDeeper}</span>`);
+      if (sibling(n, -1) || sibling(n, 1)) keys.push(`<span><kbd>←</kbd><kbd>→</kbd> ${t.keySiblings}</span>`);
+      if (n.parent) keys.push(`<span><kbd>↑</kbd> ${t.keyBack}</span>`);
+      if (keys.length) out.push(`<p class="p-hint" aria-label="${t.keys}" ${st()}>${keys.join('')}</p>`);
+    }
     return out.join('');
   }
 
@@ -443,6 +542,7 @@
       panelScroll.innerHTML = render(n);
       panelScroll.scrollTop = 0;
       positionPanel();
+      updateScrollFade();
       void panel.offsetWidth;
       panel.classList.add('open');
       beam.classList.toggle('on', !(mobile && n.children.length));
@@ -452,6 +552,7 @@
 
   function positionPanel() {
     panel.classList.toggle('below', panelBelow());
+    panel.classList.toggle('side-left', !mobile && RADIAL && radialView().side === 'left');
     if (mobile) {
       panel.style.left = panel.style.top = panel.style.width = '';
       const a = anchor();
@@ -462,6 +563,13 @@
         bottom = a.y + (M_ROW1 + (rows - 1) * M_ROWGAP + focus.children[0].r + 50) * s;
       }
       panel.style.maxHeight = `${Math.max(H * 0.28, H - bottom - 24)}px`;
+    } else if (RADIAL) {
+      const v = radialView();
+      panel.style.left = `${v.side === 'right' ? W - PANEL_GAP - v.pw : PANEL_GAP}px`;
+      panel.style.width = `${v.pw}px`;
+      panel.style.maxHeight = `${H - 150}px`;
+      panel.style.top = '96px';
+      panel.style.top = `${Math.max(96, (H - panel.offsetHeight) / 2 + 20)}px`;
     } else if (panelBelow()) {
       const a = anchor();
       const width = Math.min(600, W - 64);
@@ -484,8 +592,18 @@
     }
     panelBox = { x: panel.offsetLeft, y: panel.offsetTop, w: panel.offsetWidth, h: panel.offsetHeight };
     sceneDirty = true;
-    panel.style.setProperty('--panel-h', `${panelBox.h + 70}px`);
   }
+
+  function updateScrollFade() {
+    const more = panelScroll.scrollHeight - panelScroll.clientHeight - panelScroll.scrollTop > 2;
+    panelScroll.classList.toggle('has-more', more);
+  }
+  panelScroll.addEventListener('scroll', updateScrollFade, { passive: true });
+
+  $('.skip-link').addEventListener('click', (e) => {
+    e.preventDefault();
+    panel.focus();
+  });
 
   panel.addEventListener('click', (e) => {
     const b = e.target.closest('[data-path]');
@@ -670,9 +788,8 @@
     ghost.classList.toggle('ready', ready);
     const u = ui();
     ghostTitle.textContent = L(t);
-    const teaser = t.soon ? u.soon : tx(t, 'teaser') || (t.children.length ? u.inside(t.children.length) : tx(t, 'kicker') || '');
-    if (mode === 'hover') ghostSub.textContent = `${teaser} · ${u.clickOrDrag}`;
-    else ghostSub.textContent = ready ? u.release : teaser;
+    const teaser = t.soon ? u.soon : tx(t, 'teaser') || (t.children.length ? u.inside(t.children.length) : tx(t, 'period') || '');
+    ghostSub.textContent = mode !== 'hover' && ready ? u.release : teaser;
   }
 
   function updateBeam() {
@@ -680,7 +797,11 @@
     const n = toScreen(focus);
     const r = vr(focus) * cam.s;
     let o, p1, p2;
-    if (panelBelow()) {
+    if (panelBox.x + panelBox.w < n.x) {
+      o = { x: n.x - r * 0.9, y: n.y };
+      p1 = { x: panelBox.x + panelBox.w - 2, y: panelBox.y + 18 };
+      p2 = { x: panelBox.x + panelBox.w - 2, y: panelBox.y + panelBox.h - 18 };
+    } else if (panelBelow()) {
       o = { x: n.x, y: n.y + r * 0.9 };
       p1 = { x: panelBox.x + 18, y: panelBox.y + 2 };
       p2 = { x: panelBox.x + panelBox.w - 18, y: panelBox.y + 2 };
@@ -715,7 +836,6 @@
   }
 
   function updateEdgeHints() {
-    const margin = 70;
     const targets = { up: focus.parent, left: sibling(focus, -1), right: sibling(focus, 1) };
     for (const [dir, el] of Object.entries(edgeHints)) {
       const n = targets[dir];
@@ -724,8 +844,7 @@
         if (el._node !== n || el._mode !== 'tab') {
           el._node = n;
           el._mode = 'tab';
-          const arrow = dir === 'up' ? '↑' : dir === 'left' ? '‹' : '›';
-          el.innerHTML = `<span class="tab-arrow" aria-hidden="true">${arrow}</span><span class="tab-label">${L(n)}</span>`;
+          el.innerHTML = `<span class="tab-arrow">${CHEVRON[dir]}</span><span class="tab-label">${L(n)}</span>`;
           el.setAttribute('aria-label', `${ui().goTo} ${L(n)}`);
         }
         el.classList.add('show');
@@ -738,11 +857,30 @@
         el._node = null;
       }
       const s = toScreen(n);
-      const off = s.x < margin || s.x > W - margin || s.y < margin + 40 || s.y > H - margin;
+      // a node counts as visible while any of it, label included, is on screen
+      const R = n.r * cam.s;
+      const off = n.el.classList.contains('hidden')
+        || s.x + R < 0 || s.x - R > W || s.y + R + 34 < 0 || s.y - R > H;
       if (!off) { el.classList.remove('show'); continue; }
+      if (RADIAL) {
+        // point the hint in the node's real direction and pin it to that edge
+        const ang = Math.atan2(s.y - anc.y, s.x - anc.x);
+        const arrow = ['right', 'down', 'left', 'up'][(Math.round(ang / (Math.PI / 2)) + 4) % 4];
+        if (el._node !== n || el._arrow !== arrow) {
+          el._node = n;
+          el._arrow = arrow;
+          el.innerHTML = arrow === 'right' ? `<span>${L(n)}</span>${CHEVRON.right}` : `${CHEVRON[arrow]}<span>${L(n)}</span>`;
+          el.setAttribute('aria-label', `${ui().goTo} ${L(n)}`);
+        }
+        el.classList.add('show');
+        el.style.left = `${clamp(s.x, 110, W - 110)}px`;
+        el.style.top = `${clamp(s.y, 110, H - 60)}px`;
+        continue;
+      }
       if (el._node !== n) {
         el._node = n;
-        el.textContent = dir === 'up' ? `↑ ${L(n)}` : dir === 'left' ? `← ${L(n)}` : `${L(n)} →`;
+        el.innerHTML = dir === 'right' ? `<span>${L(n)}</span>${CHEVRON.right}` : `${CHEVRON[dir]}<span>${L(n)}</span>`;
+        el.setAttribute('aria-label', `${ui().goTo} ${L(n)}`);
       }
       el.classList.add('show');
       const x = dir === 'left' ? 90 : dir === 'right' ? W - 90 : clamp(s.x, 120, W - 120);
@@ -1069,6 +1207,9 @@
     });
     $('.hint-desktop').textContent = u.hintDesktop;
     $('.hint-touch').textContent = u.hintTouch;
+    $('.skip-link').textContent = u.skip;
+    stage.setAttribute('aria-label', u.graph);
+    $('meta[name="description"]').setAttribute('content', u.description);
     $('.quick [data-ui="email"]').textContent = u.email;
     $('.quick [data-ui="cv"]').textContent = u.cv;
     langBtn.classList.toggle('is-ru', lang === 'ru');
@@ -1081,6 +1222,7 @@
     if (panelOpen) {
       panelScroll.innerHTML = render(focus);
       positionPanel();
+      updateScrollFade();
     }
   }
   langBtn.addEventListener('click', () => {
@@ -1098,6 +1240,7 @@
   requestAnimationFrame(() => requestAnimationFrame(() => document.documentElement.classList.remove('booting')));
   applyLang();
   const start = fromHash();
+  if (start !== ROOT) hint.classList.add('gone');
   go(start, { push: false, instant: true });
   history.replaceState(null, '', hashOf(start));
   requestAnimationFrame(frame);

@@ -4,17 +4,48 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Damir Sarsengaliyev</title>
-  <meta name="description" content="Damir Sarsengaliyev — data scientist at Freedom Holding Corp., working on statistics, ML, and LLMs.">
-  <meta name="theme-color" content="#0b5f62">
+  <meta name="description" content="Damir Sarsengaliyev, data scientist at Freedom Holding Corp., working on statistics, machine learning, and LLMs.">
+  <meta name="theme-color" content="#0a5d63">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="canonical" href="https://damirsarsengaliyev.com/">
+
+  <meta property="og:type" content="profile">
+  <meta property="og:url" content="https://damirsarsengaliyev.com/">
+  <meta property="og:title" content="Damir Sarsengaliyev">
+  <meta property="og:description" content="Data scientist at Freedom Holding Corp. Statistics, machine learning, and LLMs.">
+  <meta property="og:image" content="https://damirsarsengaliyev.com/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Damir Sarsengaliyev, data scientist, shown as the centre of a small node graph on a teal background">
+  <meta name="twitter:card" content="summary_large_image">
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=19">
+  <link href="https://fonts.googleapis.com/css2?family=Geologica:wght,SHRP@300..700,0..100&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=27">
 </head>
 <body>
+  <a class="skip-link" href="#panel">Skip to details</a>
+
   <canvas id="bg" aria-hidden="true"></canvas>
 
-  <main id="stage" aria-label="Interactive graph. Use arrow keys to move between nodes.">
+  <header class="topbar ui">
+    <a class="brand" href="#/" translate="no">Damir Sarsengaliyev</a>
+    <nav class="crumbs" aria-label="Breadcrumb"></nav>
+  </header>
+
+  <nav class="quick ui" aria-label="Quick links">
+    <a href="https://github.com/Gunterwill" target="_blank" rel="noopener" translate="no">GitHub</a>
+    <a href="https://www.linkedin.com/in/damir-sarsengaliyev-843816254/" target="_blank" rel="noopener" translate="no">LinkedIn</a>
+    <a href="mailto:damir.sarsengaliyev.03@gmail.com" data-ui="email">Email</a>
+    <a href="cv.pdf" target="_blank" rel="noopener" data-ui="cv">CV</a>
+  </nav>
+
+  <button class="lang-toggle ui" type="button" aria-label="Переключить на русский">
+    <span class="lang-en" lang="en">EN</span><span class="lang-ru" lang="ru">RU</span>
+  </button>
+
+  <nav id="stage" aria-label="Graph of sections">
     <div id="world">
       <svg id="edges" width="1" height="1" aria-hidden="true">
         <g id="edge-layer"></g>
@@ -28,7 +59,11 @@
       <div id="traveler" aria-hidden="true"></div>
       <div id="nodes"></div>
     </div>
-  </main>
+  </nav>
+
+  <button class="edge-hint up ui" type="button"></button>
+  <button class="edge-hint left ui" type="button"></button>
+  <button class="edge-hint right ui" type="button"></button>
 
   <svg id="beam" aria-hidden="true">
     <defs>
@@ -42,46 +77,30 @@
     <line id="beam-l2"></line>
   </svg>
 
-  <section id="panel" aria-live="polite">
-    <div class="scan" aria-hidden="true"></div>
+  <main id="panel" aria-live="polite" tabindex="-1">
     <div class="panel-scroll"></div>
-  </section>
-
-  <header class="topbar ui">
-    <a class="brand" href="#/">Damir Sarsengaliyev</a>
-    <nav class="crumbs" aria-label="Breadcrumb"></nav>
-  </header>
-
-  <nav class="quick ui" aria-label="Quick links">
-    <a href="https://github.com/Gunterwill" target="_blank" rel="noopener">GitHub</a>
-    <a href="https://www.linkedin.com/in/damir-sarsengaliyev-843816254/" target="_blank" rel="noopener">LinkedIn</a>
-    <a href="mailto:damir.sarsengaliyev.03@gmail.com" data-ui="email">Email</a>
-    <a href="cv.pdf" target="_blank" rel="noopener" data-ui="cv">CV</a>
-  </nav>
-
-  <button class="lang-toggle ui" type="button" aria-label="Переключить на русский">
-    <span class="lang-en">EN</span><span class="lang-ru">RU</span>
-  </button>
-
-  <button class="edge-hint up ui" type="button"></button>
-  <button class="edge-hint left ui" type="button"></button>
-  <button class="edge-hint right ui" type="button"></button>
+  </main>
 
   <div class="hint ui" aria-hidden="true">
-    <span class="hint-desktop">Hold and drag toward a node, or click it · arrow keys work too</span>
-    <span class="hint-touch">Swipe toward a node, or tap it</span>
+    <span class="hint-desktop">Drag toward a node to travel there, or click it. Arrow keys work too.</span>
+    <span class="hint-touch">Swipe toward a node, or tap it.</span>
   </div>
 
   <noscript>
     <div class="noscript">
       <h1>Damir Sarsengaliyev</h1>
-      <p>Data scientist working on statistics, machine learning, and LLMs.</p>
-      <p><a href="https://github.com/Gunterwill">GitHub</a> · <a href="mailto:damir.sarsengaliyev.03@gmail.com">Email</a> · <a href="cv.pdf">CV</a></p>
+      <p>Data scientist at Freedom Holding Corp., working on statistics, machine learning, and LLMs.</p>
+      <ul>
+        <li><a href="mailto:damir.sarsengaliyev.03@gmail.com">Email</a></li>
+        <li><a href="cv.pdf">CV (PDF)</a></li>
+        <li><a href="https://github.com/Gunterwill">GitHub</a></li>
+        <li><a href="https://www.linkedin.com/in/damir-sarsengaliyev-843816254/">LinkedIn</a></li>
+      </ul>
     </div>
   </noscript>
 
-  <script src="content.js?v=19"></script>
-  <script src="content.ru.js?v=19"></script>
-  <script src="app.js?v=19"></script>
+  <script src="content.js?v=27"></script>
+  <script src="content.ru.js?v=27"></script>
+  <script src="app.js?v=27"></script>
 </body>
 </html>
